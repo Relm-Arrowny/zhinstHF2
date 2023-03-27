@@ -25,7 +25,7 @@ import numpy as np
 
 class HF2Sever():
     
-    def __init__(self, ip ="127.23.110.81", port = 63888,
+    def __init__(self, ip ="0.0.0.0", port = 63888,
                   HF2IP = "172.23.110.84", HF2Port = 8004, api_level = 1
                   , device_id = "dev4206"):
         self.HOST = ip # The server's hostname or IP address
@@ -59,9 +59,9 @@ class HF2Sever():
                         sample = self.daq.getSample(f"/{self.device_id}/demods/0/sample")
                         X = sample['x'][0]
                         Y = sample['y'][0]
-                        #R = np.abs(X + 1j*Y)
-                        #Theta = np.arctan2(Y,X)
-                        sendData = "%.3e, %.3e" %(X,Y)
+                        R = np.abs(X + 1j*Y)
+                        Theta = np.rad2deg(np.arctan2(Y,X))
+                        sendData = "%.3e, %.3e, %.3e, %f" %(X, Y, R, Theta)
                         conn.sendall(sendData.encode("utf_8"))
                     else:
                         sendData = b"0"

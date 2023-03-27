@@ -16,6 +16,7 @@ zhinst.core.ziDAQServer("172.23.110.84",8004, 1)
 daq = zhinst.core.ziDAQServer(server_host, server_port, api_level)
 
 sample = daq.getSample(f"/{device_id}/demods/0/sample")
+daq.setDouble(f"/{device_id}/oscs/0/freq", 3000)
 print(sample)
 X = sample['x'][0]
 Y = sample['y'][0]

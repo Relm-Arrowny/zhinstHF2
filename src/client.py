@@ -16,4 +16,4 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     if data == b"0":
         print ("Unexpected request")
 
-print(f"{data}")
+print(data)
