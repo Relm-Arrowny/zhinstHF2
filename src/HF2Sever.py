@@ -9,13 +9,21 @@ Created on 24 Mar 2023
     It ask data server for the data and pass it back to the client.
     
     https://docs.zhinst.com/pdf/ziMFIA_UserManual.pdf
-@version: 1.0 
+@version: 1.1 
     class take 5 optional parameters:
     ip and port for the server
     ip and port for the HF2 and the api level 
 
-        
-     start(self) :bool   start the server  
+    start(self) :bool   start the server
+    list of comment the server will react to
+    
+        "stopSever":             stop the server
+        "autoVoltageInRange":    trigger auto range on input voltage
+        "setTimeConstant":        set time constant on the lockin
+        "setDataRate":            set the rate that rate is being generated
+        "setCurrentInRange":     set the gain on the input current
+        "autoCurrentInRange":     trigger auto gain on the input current
+                    
      connectHF2(self) : bool        connect to data server
 '''
 
@@ -50,21 +58,41 @@ class HF2Sever():
                 while self.serverRunning:
                     s.listen()
                     conn, addr = s.accept()
-                    data = conn.recv(1024)
-                    if data == b"s":
+                    data = conn.recv(1024).split()
+                    
+                    if data[0] == b"stopSever":
                         self.serverRunning = False
                         conn.sendall(b"server stopping")
                         
-                    elif data == b"getData":
+                    elif data[0] == b"getData":
                         sample = self.daq.getSample(f"/{self.device_id}/demods/0/sample")
-                        X = sample['x'][0]
-                        Y = sample['y'][0]
+                        value = int (data[1])
+                        X = np.average(sample['x'][0:value])
+                        Y = np.average(sample['y'][0:value])
                         R = np.abs(X + 1j*Y)
                         Theta = np.rad2deg(np.arctan2(Y,X))
-                        sendData = "%.3e, %.3e, %.3e, %f" %(X, Y, R, Theta)
+                        sendData = "%e, %e, %e, %f" %(X, Y, R, Theta)
                         conn.sendall(sendData.encode("utf_8"))
+                    
+                    elif data[0] == b"autoVoltageInRange":
+                        self.daq.setInt(f"/{self.device_id}/sigins/0/autorange", 1)
+                    
+                    elif data[0] == b"setTimeConstant":
+                        self.daq.setDouble(f"/{self.device_id}/sigins/0/autorange", float (data[1]))
+                    
+                    elif data[0] == b"setDataRate":
+                        self.daq.setDouble(f"/{self.device_id}/demods/0/rate", float (data[1]))
+                    
+                    elif data[0] ==  b"setCurrentInRange": 
+                        #current range is in multiple of 10 bettween 1e-9 to 1e-2
+                        value = np.math.floor(np.math.log(float (data[1]), 10))
+                        self.daq.setDouble('/dev4206/currins/0/range', 10**value)
+                    elif data[0] ==  b"autoCurrentInRange": 
+                        self.daq.setInt('/dev4206/currins/0/autorange', 1)
+                    
                     else:
                         sendData = b"0"
+                        #sendData = "Invalid command"
                         conn.sendall(sendData)
         else:
             return False
