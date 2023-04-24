@@ -9,9 +9,10 @@ Created on 24 Mar 2023
     It ask data server for the data and pass it back to the client.
     
     https://docs.zhinst.com/pdf/ziMFIA_UserManual.pdf
-@version: 1.2
+@version: 1.2.1
+    added error handling to stop server from crashing
     class take 5 optional parameters:
-    ip and port for the server
+    ip and port for the serverm
     ip and port for the HF2 and the api level 
 
     start(self) :bool   start the server
@@ -25,14 +26,15 @@ Created on 24 Mar 2023
         "setDataRate":            set the rate that rate is being generated
         "setCurrentInRange":     set the gain on the input current
         "autoCurrentInRange":     trigger auto gain on the input current
-                    
+        "close":                    close current connetion
+        "getData countTime":     send averaged data for a given countTime
      connectHF2(self) : bool        connect to data server
 '''
 
 import socket
 import zhinst.core
 import numpy as np
-from time import sleep
+from time import time
 
 class HF2Sever():
     
@@ -81,8 +83,11 @@ class HF2Sever():
         print("waiting for command")
         queued_data = self.conn.recv(1024).splitlines()
         print(queued_data)
+        
         if not queued_data:
             queued_data =  [b"close"]
+        
+        
         for data in queued_data:
             
             data = data.split()   
@@ -94,32 +99,64 @@ class HF2Sever():
                 self.daq.disconnect()
                 
             elif data[0] == b"getData":
-                sample = self.daq.getSample(f"/{self.device_id}/demods/0/sample")
-                value = int (data[1])
-                X = np.average(sample['x'][0:value])
-                Y = np.average(sample['y'][0:value])
-                R = np.abs(X + 1j*Y)
-                Theta = np.rad2deg(np.arctan2(Y,X))
-                sendData = "%e, %e, %e, %f" %(X, Y, R, Theta)
-                self.conn.sendall(sendData.encode("utf_8"))
-            
+                try:
+                    if len(data)>1:
+                        value = float (data[1])
+                    else:
+                        value = 0
+                    x =[]
+                    y =[]
+                    EndTime = time()+value
+                    sample = self.daq.getSample(f"/{self.device_id}/demods/0/sample")
+                    x.append(sample['x'])
+                    y.append(sample['y'])
+                    while(EndTime>time()):
+                        sample = self.daq.getSample(f"/{self.device_id}/demods/0/sample")
+                        x.append(sample['x'])
+                        y.append(sample['y'])
+                    X = np.average(x)
+                    Y = np.average(y)
+                    R = np.abs(X + 1j*Y)
+                    Theta = np.rad2deg(np.arctan2(Y,X))
+                    sendData = "%e, %e, %e, %f" %(X, Y, R, Theta)
+                    self.conn.sendall(sendData.encode("utf_8"))
+                except Exception as e:
+                    self.sendError("data read failed: %s" %e)
             elif data[0] == b"autoVoltageInRange":
-                self.daq.setInt(f"/{self.device_id}/sigins/0/autorange", 1)
-            
+                try:
+                    self.daq.setInt(f"/{self.device_id}/sigins/0/autorange", 1)#
+                    self.sendAck()
+                except Exception as e:
+                    self.sendError("Auto Voltage Range failed: %s" %e)
             elif data[0] == b"setTimeConstant":
-                self.daq.setDouble(f"/{self.device_id}/sigins/0/range", float (data[1]))
-            
+                try:
+                    self.daq.setDouble(f"/{self.device_id}/sigins/0/range", float (data[1]))
+                    self.sendAck()
+                except Exception as e:
+                    self.sendError("Cannot setTimeConstant: %s" %e)
+                    
             elif data[0] == b"setDataRate":
-                self.daq.setDouble(f"/{self.device_id}/demods/0/rate", float (data[1]))
-            
-            elif data[0] ==  b"setCurrentInRange": 
-                #current range is in multiple of 10 between 1e-9 to 1e-2
-                value = np.math.floor(np.math.log(float (data[1]), 10))
-                self.daq.setDouble('/dev4206/currins/0/range', 10**value)
-            
+                try:
+                    self.daq.setDouble(f"/{self.device_id}/demods/0/rate", float (data[1]))
+                    self.sendAck()
+                except Exception as e:
+                    self.sendError("Cannot setDataRate %s" %e)
+            elif data[0] ==  b"setCurrentInRange":
+                try:
+                    #current range is in multiple of 10 between 1e-9 to 1e-2
+                    value = np.math.floor(np.math.log(float (data[1]), 10))
+                    self.daq.setDouble('/dev4206/currins/0/range', 10**value)
+                    self.sendAck()
+                except Exception as e:
+                    self.sendError("Cannot setCurrentInRange: %s" %e)
+                    
             elif data[0] ==  b"autoCurrentInRange": 
-                self.daq.setInt('/dev4206/currins/0/autorange', 1)
-            
+                try:
+                    self.daq.setInt('/dev4206/currins/0/autorange', 1)
+                    self.sendAck()
+                except Exception as e:
+                    self.sendError("autoCurrent failed: %s" %e)
+                    
             elif data[0] == b"close":
                 self.conn.close()
                 self.conn = None
@@ -127,7 +164,11 @@ class HF2Sever():
                 self.conn, addr = s.accept()
                 print(f"connected: {addr}")
             else:
-                sendData = b"0"
-                self.conn.sendall(sendData)
+                self.sendError()
         
         return True
+    def sendError(self, errorMessage = "Unknown request"):
+        self.conn.sendall(errorMessage.encode("utf_8"))
+    def sendAck(self):
+        sendData = b"1"
+        self.conn.sendall(sendData)
