@@ -26,13 +26,14 @@ h.subscribe('/dev4206/scopes/0/wave')
 
 daq.setInt('/dev4206/scopes/0/enable', 1)
 h.execute()
-time.sleep(1.2)
+time.sleep(0.1)
 h.finish()
 #h.unsubscribe('*')
 
 result = h.read()
-h.unsubscribe('*')
+
 print (result)
+h.unsubscribe('*')
 #===============================================================
 plt.plot(result ["dev4206"]["scopes"]["0"]["wave"][0][0]["wave"][0])
 plt.show()

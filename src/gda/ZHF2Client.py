@@ -1,0 +1,73 @@
+'''
+Created on 27 Mar 2023
+
+@author: wvx67826
+
+@description: 
+    zurich client
+    JPython class to handle all client side of HF2Sever
+    It send request to the server and handle responds 
+    The server and client test with python 3 can be found here@
+        https://github.com/Relm-Arrowny/zhinstHF2/tree/main/src
+    manual:
+        https://docs.zhinst.com/pdf/ziMFIA_UserManual.pdf
+@version: 1.0
+    First implementation of all user requested functions.
+    
+'''
+
+from beamline.TCL_Controls.TCPSocket.TCPSocket import TCPSocket
+import time
+
+
+class ZHF2Client(TCPSocket):
+    def __init__(self, bufferSize = 256, timeout = 5):
+        super(ZHF2Client, self).__init__(bufferSize, timeout)
+        
+
+#================== get data ==============================================================
+    def getData(self, time):
+        com = ("getData %s" %time)
+        self.sendCom(com)
+        return self.readBuffer()
+
+# Set parameters  
+#  return 1/data for success and 0/ error message for failure 
+    
+    def autoV(self):
+        com = "autoVoltageInRange" 
+        self.sendCom(com)
+        return self.readBuffer()
+    
+    def setTCons(self, value):
+        com = "setTimeConstant %s" %value
+        self.sendCom(com)
+        return self.readBuffer()
+    
+    def setDataRate(self, value):
+        com = "setDataRate %s" %value
+        self.sendCom(com)
+        return self.readBuffer()
+    
+    def setCurrentInRange(self, value):
+        com = "setCurrentInRange %s" %value
+        self.sendCom(com)
+        return self.readBuffer()
+    
+    def autoCurrentInRange(self):
+        com = "autoCurrentInRange"
+        self.sendCom(com)
+        return self.readBuffer()
+
+HOST = "172.23.110.81" # The server's hostname or IP address
+PORT = 8888  # The port used by the server
+
+zur = ZHF2Client()
+zur.connection(HOST, PORT)
+""" #tests
+print zur.getData(2)
+print zur.setTCons(1e-6)
+print zur.setDataRate(1e4)
+print zur.setCurrentInRange(1e-3)
+print zur.autoCurrentInRange()
+"""
