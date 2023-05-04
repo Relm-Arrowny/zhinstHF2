@@ -38,7 +38,7 @@ from time import time
 
 class HF2Sever():
     
-    def __init__(self, ip ="", port = 6388,
+    def __init__(self, ip ="", port = 8888,
                   HF2IP = "172.23.110.84", HF2Port = 8004, api_level = 1
                   , device_id = "dev4206"):
         self.HOST = ip # The server's hostname or IP address
@@ -60,6 +60,7 @@ class HF2Sever():
                     s.bind((self.HOST, self.PORT))
                     s.listen()
                     self.conn, addr = s.accept()
+                    print("Connected: %s" %addr)
                 except:
                     print("fail to start server")
                 
@@ -118,7 +119,7 @@ class HF2Sever():
                     Y = np.average(y)
                     R = np.abs(X + 1j*Y)
                     Theta = np.rad2deg(np.arctan2(Y,X))
-                    sendData = "%e, %e, %e, %f" %(X, Y, R, Theta)
+                    sendData = "%e, %e, %f, %e" %(X, Y, Theta, R)
                     self.conn.sendall(sendData.encode("utf_8"))
                 except Exception as e:
                     self.sendError("data read failed: %s" %e)
