@@ -20,7 +20,7 @@ class zurichHF2Scanable(ScannableBase):
         self.zur = zur
         self.setName(name);
         self.setInputNames(["X"])
-        self.setExtraNames(["Y", "Theta","R"])
+        self.setExtraNames(["Y", "Theta","static","R"])
         self.setOutputFormat(["%.6g"])
         self.level = 110
         self.countTime = 0;

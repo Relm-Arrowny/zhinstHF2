@@ -34,12 +34,12 @@ Created on 24 Mar 2023
 import socket
 import zhinst.core
 import numpy as np
-from time import time
+from time import time, sleep
 
 class HF2Sever():
     
     def __init__(self, ip ="", port = 8888,
-                  HF2IP = "172.23.110.84", HF2Port = 8004, api_level = 1
+                  HF2IP = "172.23.110.84", HF2Port = 8004, api_level = 6
                   , device_id = "dev4206"):
         self.HOST = ip # The server's hostname or IP address
         self.PORT = port  # The port used by the server
@@ -50,6 +50,7 @@ class HF2Sever():
         self.daq = None
         self.device_id = device_id
         self.conn = None
+        self.scope = None
         
     def start(self):
         self.serverRunning = True
@@ -75,11 +76,21 @@ class HF2Sever():
     def connectHF2(self):
         try:
             self.daq = zhinst.core.ziDAQServer(self.HF2IP,self.HF2Port, self.api_level)
+            self.scopeSetup()
             print("HF2 Data server connected")
         except:
             print("connection failed")
             return False
         return True
+    
+    def scopeSetup(self):
+        #setup the scope to take a snap shot for static
+        self.scope = self.daq.scopeModule()
+        self.daq.set('/dev4206/scopes/0/time', 5)
+        self.daq.set('/dev4206/scopes/0/length', 4096)
+        self.daq.set('/dev4206/scopes/0/channels/0/inputselect', 0)
+        self.daq.set('/dev4206/scopes/0/enable', 1)
+                
     def processRequest(self, s):
         print("waiting for command")
         queued_data = self.conn.recv(1024).splitlines()
@@ -119,7 +130,22 @@ class HF2Sever():
                     Y = np.average(y)
                     R = np.abs(X + 1j*Y)
                     Theta = np.rad2deg(np.arctan2(Y,X))
-                    sendData = "%e, %e, %f, %e" %(X, Y, Theta, R)
+                    
+                    #================= take a single shoot ==================
+                
+                    self.scope.subscribe('/dev4206/scopes/0/wave/')
+                    self.scope.execute()
+                    self.daq.setInt('/dev4206/scopes/0/single', 1)
+                    self.daq.setInt('/dev4206/scopes/0/enable', 1)
+                    self.daq.sync()
+                    sleep(0.5)
+                    self.scope.finish()
+                    result = self.scope.read(True)
+                    static =  result["/dev4206/scopes/0/wave"][0][0]["wave"][0].mean()
+                    self.scope.unsubscribe('*')
+                    #===============================================================
+
+                    sendData = "%e, %e, %f, %e, %e" %(X, Y, Theta, static, R)
                     self.conn.sendall(sendData.encode("utf_8"))
                 except Exception as e:
                     self.sendError("data read failed: %s" %e)
