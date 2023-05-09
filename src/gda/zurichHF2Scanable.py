@@ -14,6 +14,7 @@ Created on 25 Apr 2023
 '''
 from gda.device.scannable import ScannableBase
 
+
 class zurichHF2Scanable(ScannableBase):
     def __init__(self,name, zur):
         

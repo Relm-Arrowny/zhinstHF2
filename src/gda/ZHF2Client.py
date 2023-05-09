@@ -21,7 +21,7 @@ import time
 
 
 class ZHF2Client(TCPSocket):
-    def __init__(self, bufferSize = 256, timeout = 5):
+    def __init__(self, bufferSize = 1048, timeout = 5):
         super(ZHF2Client, self).__init__(bufferSize, timeout)
         
 

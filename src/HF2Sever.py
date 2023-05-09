@@ -89,7 +89,7 @@ class HF2Sever():
         self.daq.set('/dev4206/scopes/0/time', 5)
         self.daq.set('/dev4206/scopes/0/length', 4096)
         self.daq.set('/dev4206/scopes/0/channels/0/inputselect', 0)
-        self.daq.set('/dev4206/scopes/0/enable', 1)
+        self.daq.set('/dev4206/scopes/0/enable', 0)
                 
     def processRequest(self, s):
         print("waiting for command")
@@ -138,7 +138,7 @@ class HF2Sever():
                     self.daq.setInt('/dev4206/scopes/0/single', 1)
                     self.daq.setInt('/dev4206/scopes/0/enable', 1)
                     self.daq.sync()
-                    sleep(0.5)
+                    sleep(0.15) #wait for the single shoot to be completed
                     self.scope.finish()
                     result = self.scope.read(True)
                     static =  result["/dev4206/scopes/0/wave"][0][0]["wave"][0].mean()

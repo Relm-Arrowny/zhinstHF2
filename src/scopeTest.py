@@ -8,7 +8,7 @@ import zhinst.core
 import time
 import matplotlib.pyplot as plt
 
-daq = zhinst.core.ziDAQServer("172.23.110.84",8004,1)
+daq = zhinst.core.ziDAQServer("172.23.110.84",8004,6)
 
 h = daq.scopeModule()
 
@@ -20,12 +20,11 @@ daq.set('/dev4206/scopes/0/enable', 1)
 
 #================= take a single shoot ==================
 #result = h.read(True)
-
-daq.setInt('/dev4206/scopes/0/single', 1)
-h.subscribe('/dev4206/scopes/0/wave')
-
-daq.setInt('/dev4206/scopes/0/enable', 1)
+h.subscribe('/dev4206/scopes/0/wave/')
 h.execute()
+daq.setInt('/dev4206/scopes/0/single', 1)
+daq.setInt('/dev4206/scopes/0/enable', 1)
+daq.sync()
 time.sleep(0.1)
 h.finish()
 #h.unsubscribe('*')
