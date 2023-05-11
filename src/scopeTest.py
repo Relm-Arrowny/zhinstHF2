@@ -16,11 +16,12 @@ h = daq.scopeModule()
 daq.set('/dev4206/scopes/0/time', 5)
 daq.set('/dev4206/scopes/0/length', 4096)
 daq.set('/dev4206/scopes/0/channels/0/inputselect', 0)
-daq.set('/dev4206/scopes/0/enable', 1)
+daq.set('/dev4206/scopes/0/enable', 0)
 
 #================= take a single shoot ==================
 #result = h.read(True)
 h.subscribe('/dev4206/scopes/0/wave/')
+h.set("scopeModule/mode", 1)
 h.execute()
 daq.setInt('/dev4206/scopes/0/single', 1)
 daq.setInt('/dev4206/scopes/0/enable', 1)

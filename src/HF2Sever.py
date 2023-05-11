@@ -28,6 +28,7 @@ Created on 24 Mar 2023
         "autoCurrentInRange":     trigger auto gain on the input current
         "close":                    close current connetion
         "getData countTime":     send averaged data for a given countTime
+        "setupScope:            setup scope for static measurments
      connectHF2(self) : bool        connect to data server
 '''
 
@@ -133,7 +134,7 @@ class HF2Sever():
                     Theta = np.rad2deg(np.arctan2(Y,X))
                     
                     #================= take a single shoot ==================
-                
+                    self.scope.set("scopeModule/mode", 1)
                     self.scope.subscribe('/dev4206/scopes/0/wave/')
                     self.scope.execute()
                     self.daq.setInt('/dev4206/scopes/0/single', 1)
@@ -193,7 +194,10 @@ class HF2Sever():
                 print(f"connected: {addr}")
             elif data[0] == b"setupScope":
                 try:
-                    self.scopeSetup()
+                    if len(data)==4:
+                        self.scopeSetup(float (data[1]), float (data[2]), float (data[3]))
+                    else:
+                        self.scopeSetup()
                     self.sendAck()
                 except Exception as e:
                     self.sendError("Cannot setDataRate %s" %e)
