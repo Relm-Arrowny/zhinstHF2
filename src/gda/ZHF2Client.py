@@ -58,6 +58,10 @@ class ZHF2Client(TCPSocket):
         com = "autoCurrentInRange"
         self.sendCom(com)
         return self.readBuffer()
+    def setupScop(self):
+        com = "setupScope"
+        self.sendCom(com)
+        return self.readBuffer()
 
 HOST = "172.23.110.81" # The server's hostname or IP address
 PORT = 8888  # The port used by the server

@@ -40,7 +40,7 @@ class HF2Sever():
     
     def __init__(self, ip ="", port = 8888,
                   HF2IP = "172.23.110.84", HF2Port = 8004, api_level = 6
-                  , device_id = "dev4206"):
+                  , device_id = "dev4206",  freq = 5, numDataPoint = 4096, channel = 0):
         self.HOST = ip # The server's hostname or IP address
         self.PORT = port  # The port used by the server
         self.serverRunning = False
@@ -73,7 +73,7 @@ class HF2Sever():
             return False
         return True
 
-    def connectHF2(self):
+    def connectHF2(self, freq = 5, numDataPoint = 4096, channel = 0):
         try:
             self.daq = zhinst.core.ziDAQServer(self.HF2IP,self.HF2Port, self.api_level)
             self.scopeSetup()
@@ -83,12 +83,13 @@ class HF2Sever():
             return False
         return True
     
-    def scopeSetup(self):
-        #setup the scope to take a snap shot for static
+    def scopeSetup(self, freq = 5, numDataPoint = 4096, channel = 0):
+        #setup the scope to take a snap shot for static 
+        #the choose are historical
         self.scope = self.daq.scopeModule()
-        self.daq.set('/dev4206/scopes/0/time', 5)
-        self.daq.set('/dev4206/scopes/0/length', 4096)
-        self.daq.set('/dev4206/scopes/0/channels/0/inputselect', 0)
+        self.daq.set('/dev4206/scopes/0/time', freq)
+        self.daq.set('/dev4206/scopes/0/length', numDataPoint)
+        self.daq.set('/dev4206/scopes/0/channels/0/inputselect', channel)
         self.daq.set('/dev4206/scopes/0/enable', 0)
                 
     def processRequest(self, s):
@@ -190,6 +191,12 @@ class HF2Sever():
                 print("waiting for conection")
                 self.conn, addr = s.accept()
                 print(f"connected: {addr}")
+            elif data[0] == b"setupScope":
+                try:
+                    self.scopeSetup()
+                    self.sendAck()
+                except Exception as e:
+                    self.sendError("Cannot setDataRate %s" %e)
             else:
                 self.sendError()
         
