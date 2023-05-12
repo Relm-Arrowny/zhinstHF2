@@ -26,9 +26,10 @@ Created on 24 Mar 2023
         "setDataRate":            set the rate that rate is being generated
         "setCurrentInRange":     set the gain on the input current
         "autoCurrentInRange":     trigger auto gain on the input current
-        "close":                    close current connetion
+        "close":                    close current connection
         "getData countTime":     send averaged data for a given countTime
-        "setupScope:            setup scope for static measurments
+        "setupScope  freq #
+        numDataPoint channel:     setup scope for static measurements
      connectHF2(self) : bool        connect to data server
 '''
 
@@ -147,7 +148,7 @@ class HF2Sever():
                     self.scope.unsubscribe('*')
                     #===============================================================
 
-                    sendData = "%e, %e, %f, %e, %e" %(X, Y, Theta, static, R)
+                    sendData = "%e, %e, %f, %e, %e\n" %(X, Y, Theta, static, R)
                     self.conn.sendall(sendData.encode("utf_8"))
                 except Exception as e:
                     self.sendError("data read failed: %s" %e)
