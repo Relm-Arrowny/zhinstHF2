@@ -154,13 +154,13 @@ class HF2Sever():
                     self.sendError("data read failed: %s" %e)
             elif data[0] == b"autoVoltageInRange":
                 try:
-                    self.daq.setInt(f"/{self.device_id}/sigins/0/autorange", 1)#
+                    self.daq.setInt(f"/{self.device_id}/sigins/0/autorange", 1)
                     self.sendAck()
                 except Exception as e:
                     self.sendError("Auto Voltage Range failed: %s" %e)
             elif data[0] == b"setTimeConstant":
                 try:
-                    self.daq.setDouble(f"/{self.device_id}/sigins/0/range", float (data[1]))
+                    self.daq.setDouble(f"/{self.device_id}/demods/0/timeconstant", float (data[1]))
                     self.sendAck()
                 except Exception as e:
                     self.sendError("Cannot setTimeConstant: %s" %e)
@@ -201,7 +201,7 @@ class HF2Sever():
                         self.scopeSetup()
                     self.sendAck()
                 except Exception as e:
-                    self.sendError("Cannot setDataRate %s" %e)
+                    self.sendError("Cannot setupScope %s" %e)
             else:
                 self.sendError()
         
