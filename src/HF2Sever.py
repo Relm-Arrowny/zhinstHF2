@@ -93,7 +93,24 @@ class HF2Sever():
         self.daq.set('/dev4206/scopes/0/length', numDataPoint)
         self.daq.set('/dev4206/scopes/0/channels/0/inputselect', channel)
         self.daq.set('/dev4206/scopes/0/enable', 0)
-                
+    
+    def singleScopeData(self):
+        #================= take a single shoot ==================
+        self.scopeSetup()
+        self.scope.set("scopeModule/mode", 1)
+        self.scope.subscribe('/dev4206/scopes/0/wave/')
+        self.scope.execute()
+        self.daq.setInt('/dev4206/scopes/0/single', 1)
+        self.daq.setInt('/dev4206/scopes/0/enable', 1)
+        self.daq.sync()
+        sleep(0.15) #wait for the single shoot to be completed
+        self.scope.finish()
+        result = self.scope.read(True)
+        static =  result["/dev4206/scopes/0/wave"][0][0]["wave"][0].mean()
+        self.scope.unsubscribe('*')
+        return static
+        #===============================================================
+    
     def processRequest(self, s):
         print("waiting for command")
         queued_data = self.conn.recv(1024).splitlines()
@@ -134,20 +151,8 @@ class HF2Sever():
                     R = np.abs(X + 1j*Y)
                     Theta = np.rad2deg(np.arctan2(Y,X))
                     
-                    #================= take a single shoot ==================
-                    self.scope.set("scopeModule/mode", 1)
-                    self.scope.subscribe('/dev4206/scopes/0/wave/')
-                    self.scope.execute()
-                    self.daq.setInt('/dev4206/scopes/0/single', 1)
-                    self.daq.setInt('/dev4206/scopes/0/enable', 1)
-                    self.daq.sync()
-                    sleep(0.15) #wait for the single shoot to be completed
-                    self.scope.finish()
-                    result = self.scope.read(True)
-                    static =  result["/dev4206/scopes/0/wave"][0][0]["wave"][0].mean()
-                    self.scope.unsubscribe('*')
-                    #===============================================================
-
+                    static = self.singleScopeData()
+        
                     sendData = "%e, %e, %f, %e, %e\n" %(X, Y, Theta, static, R)
                     self.conn.sendall(sendData.encode("utf_8"))
                 except Exception as e:
