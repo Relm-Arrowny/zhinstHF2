@@ -22,12 +22,13 @@ Created on 24 Mar 2023
     
         "stopSever":             stop the server
         "autoVoltageInRange":    trigger auto range on input voltage
-        "setTimeConstant":        set time constant on the lockin
-        "setDataRate":            set the rate that rate is being generated
-        "setCurrentInRange":     set the gain on the input current
-        "autoCurrentInRange":     trigger auto gain on the input current
-        "close":                    close current connection
-        "getData countTime":     send averaged data for a given countTime
+        "setTimeConstant"   :    set time constant on the lockin
+        "setDataRate"       :    set the rate that rate is being generated
+        "setCurrentInRange" :    set the gain on the input current
+        "setRefFreq"        :    set the Reference Frequency 
+        "autoCurrentInRange":    trigger auto gain on the input current
+        "close"             :    close current connection
+        "getData countTime" :    send averaged data for a given countTime
         "setupScope  freq #
         numDataPoint channel:     setup scope for static measurements
      connectHF2(self) : bool        connect to data server
@@ -40,7 +41,7 @@ from time import time, sleep
 
 class HF2Sever():
     
-    def __init__(self, ip ="", port = 8888,
+    def __init__(self, ip ="", port = 7891,
                   HF2IP = "172.23.110.84", HF2Port = 8004, api_level = 6
                   , device_id = "dev4206",  freq = 5, numDataPoint = 4096, channel = 0):
         self.HOST = ip # The server's hostname or IP address
@@ -111,6 +112,35 @@ class HF2Sever():
         return static
         #===============================================================
     
+    def getLockinData(self,value):
+        #================= get Lockin data  ==================
+        x =[]
+        y =[]
+        EndTime = time()+value
+        startTime = time() +value*0.5
+
+        while(EndTime>time()>startTime):
+            sample = self.daq.getSample(f"/{self.device_id}/demods/0/sample")
+            x.append(sample['x'])
+            y.append(sample['y'])
+        if (not x):
+            sample = self.daq.getSample(f"/{self.device_id}/demods/0/sample")
+            x.append(sample['x'])
+            y.append(sample['y'])
+        X = np.average(x)
+        Y = np.average(y)
+        R = np.abs(X + 1j*Y)
+        Theta = np.rad2deg(np.arctan2(Y,X))
+        return X,Y,R,Theta
+        #===============================================================
+    
+    def setRefFreq(self,freq):
+        try:
+            self.daq.setDouble(f"/{self.device_id}/oscs/0/freq", freq)
+            self.sendAck()
+        except Exception as e:
+            self.sendError("Set Ref Freq failed: %s" %e)
+    
     def processRequest(self, s):
         print("waiting for command")
         queued_data = self.conn.recv(1024).splitlines()
@@ -118,8 +148,7 @@ class HF2Sever():
         
         if not queued_data:
             queued_data =  [b"close"]
-        
-        
+            
         for data in queued_data:
             
             data = data.split()   
@@ -135,34 +164,21 @@ class HF2Sever():
                     if len(data)>1:
                         value = float (data[1])
                     else:
-                        value = 0
-                    x =[]
-                    y =[]
-                    EndTime = time()+value
-                    sample = self.daq.getSample(f"/{self.device_id}/demods/0/sample")
-                    x.append(sample['x'])
-                    y.append(sample['y'])
-                    while(EndTime>time()):
-                        sample = self.daq.getSample(f"/{self.device_id}/demods/0/sample")
-                        x.append(sample['x'])
-                        y.append(sample['y'])
-                    X = np.average(x)
-                    Y = np.average(y)
-                    R = np.abs(X + 1j*Y)
-                    Theta = np.rad2deg(np.arctan2(Y,X))
-                    
+                        value = 0.1
+                    X,Y,R,Theta = self.getLockinData(value)    
                     static = self.singleScopeData()
-        
                     sendData = "%e, %e, %f, %e, %e\n" %(X, Y, Theta, static, R)
                     self.conn.sendall(sendData.encode("utf_8"))
                 except Exception as e:
                     self.sendError("data read failed: %s" %e)
+                    
             elif data[0] == b"autoVoltageInRange":
                 try:
                     self.daq.setInt(f"/{self.device_id}/sigins/0/autorange", 1)
                     self.sendAck()
                 except Exception as e:
                     self.sendError("Auto Voltage Range failed: %s" %e)
+                    
             elif data[0] == b"setTimeConstant":
                 try:
                     self.daq.setDouble(f"/{self.device_id}/demods/0/timeconstant", float (data[1]))
@@ -176,6 +192,7 @@ class HF2Sever():
                     self.sendAck()
                 except Exception as e:
                     self.sendError("Cannot setDataRate %s" %e)
+            
             elif data[0] ==  b"setCurrentInRange":
                 try:
                     #current range is in multiple of 10 between 1e-9 to 1e-2
@@ -198,6 +215,14 @@ class HF2Sever():
                 print("waiting for conection")
                 self.conn, addr = s.accept()
                 print(f"connected: {addr}")
+            
+            elif data[0] == b"setRefFreq":
+                if len(data)>1:
+                        value = float (data[1])
+                        self.setRefFreq(value)
+                else:
+                    self.sendError("setRefFreq failed: %s" %"missing freq value")
+                
             elif data[0] == b"setupScope":
                 try:
                     if len(data)==4:
@@ -211,8 +236,10 @@ class HF2Sever():
                 self.sendError()
         
         return True
+    
     def sendError(self, errorMessage = "Unknown request"):
         self.conn.sendall(errorMessage.encode("utf_8"))
+    
     def sendAck(self):
         sendData = b"1"
         self.conn.sendall(sendData)
