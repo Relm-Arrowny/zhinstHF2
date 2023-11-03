@@ -17,20 +17,13 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.settimeout(timeout);
     s.connect((HOST, PORT))
     data = []
-    s.sendall(b"getData 0.1 ")
-    data.append(s.recv(1024))
-    s.sendall(b"getData 0.1 ")
-    data.append(s.recv(1024))
-    print (data)
-    s.sendall(b"setupScope\n")
-    data = s.recv(1024)
-    s.sendall(b"setupScope 3 5096  1\n")
-    data = s.recv(1024)
-    s.sendall(b"setupScope\n")
-    data = s.recv(1024)
-    print (data)
-    #s.sendall(b"close\n")
-    #s.sendall( b"stopSever")
-    #s.close()
+    for i in range(1000,20000,1000):
+        s.sendall(b"setRefFreq %f" %i)
+        data = s.recv(1024)
+        if data == b"data read failed: '/dev4206/scopes/0/wave'":
+            print(data)
+        print(data)
+        print("\n")
+       
     if data != b"1":
         print ("Good")
