@@ -70,13 +70,29 @@ class ZHF2Client(TCPSocket):
         com = "setRefFreq %s" %value
         self.sendCom(com)
         return self.readBuffer()
-        
+    def setRefVpk(self, value):
+        com = "setRefVpk %s" %value
+        self.sendCom(com)
+        return self.readBuffer()
+    def setRefVoff(self, value):
+        com = "setRefVoff %s" %value
+        self.sendCom(com)
+        return self.readBuffer()
+    def setsRefOutSwitch(self, value):
+        com = "setsRefOutSwitch %s" %value
+        self.sendCom(com)
+        return self.readBuffer()
+    def setsRefHarm(self, value):
+        com = "setsRefHarm %s" %value
+        self.sendCom(com)
+        return self.readBuffer()
+     
          
-HOST = "172.23.110.81" # The server's hostname or IP address
-PORT = 8888  # The port used by the server
+HOST = "172.23.110.69" # The server's hostname or IP address for Hutch Windows computer
+PORT = 7891  # The port used by the server
 
-zur = ZHF2Client()
-zur.connection(HOST, PORT)
+zur = ZHF2Client(bufferSize = 2048, timeout = 15)
+print(zur.connection(HOST, PORT))
 """ #tests
 print zur.getData(2)
 print zur.setTCons(1e-6)
