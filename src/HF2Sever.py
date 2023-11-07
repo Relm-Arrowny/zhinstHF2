@@ -25,7 +25,11 @@ Created on 24 Mar 2023
         "setTimeConstant"   :    set time constant on the lockin
         "setDataRate"       :    set the rate that rate is being generated
         "setCurrentInRange" :    set the gain on the input current
-        "setRefFreq"        :    set the Reference Frequency 
+        "setRefFreq"        :    set the Reference Frequency
+        "setRefVpk"         :    set Ref voltage
+        "setRefVoff"        :    set Ref  voltage DC offset
+        "setsRefOutSwitch"  :    set Set Ref "On" or "Off" 
+        "setsRefHarm"       :    set Ref harmonic
         "autoCurrentInRange":    trigger auto gain on the input current
         "close"             :    close current connection
         "getData countTime" :    send averaged data for a given countTime
@@ -140,6 +144,36 @@ class HF2Sever():
             self.sendAck()
         except Exception as e:
             self.sendError("Set Ref Freq failed: %s" %e)
+        
+    def setRefVpk(self, vpk):
+        try:
+            self.daq.setDouble(f"/{self.device_id}/sigouts/0/amplitudes/1", vpk)
+            self.sendAck()
+        except Exception as e:
+            self.sendError("Set Ref voltage failed: %s" %e)
+    
+    def setRefVoff(self, v):
+        try:
+            self.daq.setDouble(f"/{self.device_id}/sigouts/0/offset", v)
+            self.sendAck()
+        except Exception as e:
+            self.sendError("Set Ref voltage offset failed: %s" %e)
+    
+    def setsRefOutSwitch(self, value):
+        try:
+            temp = 1 if value == b"On" else 0
+            self.daq.setInt(f"/{self.device_id}/sigouts/0/enables/1", temp)
+            self.sendAck()
+        except Exception as e:
+            self.sendError("output switch failed: %s" %e)
+            
+    def setsRefHarm(self, value):
+        try:
+            self.daq.setDouble(f"/{self.device_id}/demods/1/harmonic", float(value))
+            self.sendAck()
+        except Exception as e:
+            self.sendError("setsRefHarm failed: %s" %e)
+#=================================================================================
     
     def processRequest(self, s):
         print("waiting for command")
@@ -223,6 +257,35 @@ class HF2Sever():
                 else:
                     self.sendError("setRefFreq failed: %s" %"missing freq value")
                 
+            elif data[0] == b"setRefV":
+                if len(data)>1:
+                        value = float (data[1])
+                        self.setRefVpk(value)
+                else:
+                    self.sendError("setRefV failed: %s" %"missing freq value")
+                    
+            elif data[0] == b"setRefVoff":
+                if len(data)>1:
+                        value = float (data[1])
+                        self.setRefVoff(value)
+                else:
+                    self.sendError("setRefVoff failed: %s" %"missing freq value")       
+                    
+                    
+            elif data[0] == b"setsRefOutSwitch":
+                if len(data)>1:
+                        value = data[1]
+                        self.setsRefOutSwitch(value)
+                else:
+                    self.sendError("setsRefOutSwitch failed: %s" %"missing freq value")  
+                     
+            elif data[0] == b"setsRefHarm":
+                if len(data)>1:
+                        value = data[1]
+                        self.setsRefHarm(value)
+                else:
+                    self.sendError("setsRefHarm failed: %s" %"missing freq value")      
+            
             elif data[0] == b"setupScope":
                 try:
                     if len(data)==4:
@@ -236,7 +299,7 @@ class HF2Sever():
                 self.sendError()
         
         return True
-    
+#=====================================================================================================================
     def sendError(self, errorMessage = "Unknown request"):
         self.conn.sendall(errorMessage.encode("utf_8"))
     
