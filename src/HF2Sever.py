@@ -122,8 +122,10 @@ class HF2Sever():
         y =[]
         EndTime = time()+value
         startTime = time() +value*0.5
-
-        while(EndTime>time()>startTime):
+        print(EndTime,startTime)
+        while (time()<startTime):
+            sleep(0.01)
+        while(EndTime>time()):
             sample = self.daq.getSample(f"/{self.device_id}/demods/0/sample")
             x.append(sample['x'])
             y.append(sample['y'])
