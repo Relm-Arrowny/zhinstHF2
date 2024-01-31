@@ -122,7 +122,6 @@ class HF2Sever():
         y =[]
         EndTime = time()+value
         startTime = time() +value*0.5
-        print(EndTime,startTime)
         while (time()<startTime):
             sleep(0.01)
         while(EndTime>time()):
