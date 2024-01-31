@@ -17,8 +17,6 @@ Created on 27 Mar 2023
 '''
 
 from beamline.TCL_Controls.TCPSocket.TCPSocket import TCPSocket
-import time
-from binstar_client.commands import channel
 
 
 class ZHF2Client(TCPSocket):
@@ -59,6 +57,7 @@ class ZHF2Client(TCPSocket):
         com = "autoCurrentInRange"
         self.sendCom(com)
         return self.readBuffer()
+    
     def setupScope(self, freq = None, numDataPoint = None, channel = None):
         if (freq == None and numDataPoint== None and channel== None):
             com = "setupScope"
@@ -66,22 +65,27 @@ class ZHF2Client(TCPSocket):
             com = "setupScope %s %s %s" %(freq, numDataPoint, channel)
         self.sendCom(com)
         return self.readBuffer()
+    
     def setRefFreq(self, value):
         com = "setRefFreq %s" %value
         self.sendCom(com)
         return self.readBuffer()
+    
     def setRefVpk(self, value):
         com = "setRefVpk %s" %value
         self.sendCom(com)
         return self.readBuffer()
+    
     def setRefVoff(self, value):
         com = "setRefVoff %s" %value
         self.sendCom(com)
         return self.readBuffer()
+    
     def setsRefOutSwitch(self, value):
         com = "setsRefOutSwitch %s" %value
         self.sendCom(com)
         return self.readBuffer()
+    
     def setsRefHarm(self, value):
         com = "setsRefHarm %s" %value
         self.sendCom(com)
